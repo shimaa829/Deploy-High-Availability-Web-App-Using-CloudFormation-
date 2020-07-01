@@ -26,4 +26,17 @@ Resources:
             Tags: 
                 - Key: Name 
                   Value: !Sub ${EnvironmentName} _Shimaa
+
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Ref EnvironmentName
+            
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref MyVPC
             
