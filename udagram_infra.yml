@@ -126,7 +126,7 @@ Resources:
             AllocationId: !GetAtt NatGateway2EIP.AllocationId
             SubnetId: !Ref PublicSubnet2
     
-    PublicRouteTable:
+    Pub_RT:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -138,23 +138,23 @@ Resources:
         Type: AWS::EC2::Route
         DependsOn: InternetGatewayAttachment
         Properties: 
-            RouteTableId: !Ref PublicRouteTable
+            RouteTableId: !Ref Pub_RT
             DestinationCidrBlock: 0.0.0.0/0
             GatewayId: !Ref InternetGateway
 
-    PublicSubnet1RouteTableAssociation:
+    Pub_Sub1_RT_Association:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref PublicRouteTable
+            RouteTableId: !Ref Pub_RT
             SubnetId: !Ref PublicSubnet1
 
-    PublicSubnet2RouteTableAssociation:
+    Pub_Sub2_RT_Association:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref PublicRouteTable
+            RouteTableId: !Ref Pub_RT
             SubnetId: !Ref PublicSubnet2
 
-    PrivateRouteTable1:
+    Priv_RT1:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -165,17 +165,17 @@ Resources:
     DefaultPrivateRoute1:
         Type: AWS::EC2::Route
         Properties:
-            RouteTableId: !Ref PrivateRouteTable1
+            RouteTableId: !Ref Priv_RT1
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref NatGateway1
 
-    PrivateSubnet1RouteTableAssociation:
+    Priv_Subn1_RT_Association:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref PrivateRouteTable1
+            RouteTableId: !Ref Priv_RT1
             SubnetId: !Ref PrivateSubnet1
 
-    PrivateRouteTable2:
+    Priv_RT2:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -186,12 +186,50 @@ Resources:
     DefaultPrivateRoute2:
         Type: AWS::EC2::Route
         Properties:
-            RouteTableId: !Ref PrivateRouteTable2
+            RouteTableId: !Ref Priv_RT2
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref NatGateway2
 
-    PrivateSubnet2RouteTableAssociation:
+    Priv_Sub2_RT_Association:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref PrivateRouteTable2
+            RouteTableId: !Ref Priv_RT2
             SubnetId: !Ref PrivateSubnet2
+
+    LB_SG:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Allow http to our load balancer
+            VpcId:
+                Fn::ImportValue:
+                 !Sub "${EnvironmentName}-VPCID"
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+    WebServer_SG:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Allow http to our hosts and SSH from local only
+            VpcId: !Ref VPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
