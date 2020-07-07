@@ -233,7 +233,8 @@ Resources:
           FromPort: 0
           ToPort: 65535
           CidrIp: 0.0.0.0/0
-
+ 
+            #------------  create an IAM Role that allows ^Cnstances to use the S3 Service -------------
 
     UdacityS3ReadOnlyEC2: 
         Type: AWS::IAM::Role
@@ -272,4 +273,29 @@ Resources:
         Path: /
         Roles: 
             - !Ref UdacityS3ReadOnlyEC2
+
+
+    WebAppLaunchConfig:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+        UserData:
+            Fn::Base64: !Sub |
+                #!/bin/bash
+                apt-get update -y
+                apt-get install unzip awscli -y
+                apt-get install apache2 -y
+                systemctl start apache2.service
+                cd /var/www/html
+                aws s3 cp s3://udacity-s3-udagram/udacity.zip .
+                unzip -o udacity.zip
+
+        ImageId: ami-0b1e2eeb33ce3d66f
+        KeyName: ec2-key
+        SecurityGroups:
+        - Ref: WebServer_SG
+        InstanceType: t3.small
+        BlockDeviceMappings:
+        - DeviceName: "/dev/sdk"
+          Ebs:
+            VolumeSize: '10'
 
