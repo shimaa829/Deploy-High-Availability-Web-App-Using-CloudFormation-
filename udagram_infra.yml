@@ -272,3 +272,4 @@ Resources:
         Path: /
         Roles: 
             - !Ref UdacityS3ReadOnlyEC2
+
