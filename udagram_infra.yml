@@ -126,7 +126,7 @@ Resources:
             AllocationId: !GetAtt NatGateway2EIP.AllocationId
             SubnetId: !Ref PublicSubnet2
     
-    Pub_RT:
+    PublicRT:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -138,23 +138,23 @@ Resources:
         Type: AWS::EC2::Route
         DependsOn: InternetGatewayAttachment
         Properties: 
-            RouteTableId: !Ref Pub_RT
+            RouteTableId: !Ref PublicRT
             DestinationCidrBlock: 0.0.0.0/0
             GatewayId: !Ref InternetGateway
 
-    Pub_Sub1_RT_Association:
+    PublicSub1RTAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref Pub_RT
+            RouteTableId: !Ref PublicRT
             SubnetId: !Ref PublicSubnet1
 
-    Pub_Sub2_RT_Association:
+    PublicSub2RTAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref Pub_RT
+            RouteTableId: !Ref PublicRT
             SubnetId: !Ref PublicSubnet2
 
-    Priv_RT1:
+    PrivateRT1:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -165,17 +165,17 @@ Resources:
     DefaultPrivateRoute1:
         Type: AWS::EC2::Route
         Properties:
-            RouteTableId: !Ref Priv_RT1
+            RouteTableId: !Ref PrivateRT1
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref NatGateway1
 
-    Priv_Subn1_RT_Association:
+    PrivateSubn1RTAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref Priv_RT1
+            RouteTableId: !Ref PrivateRT1
             SubnetId: !Ref PrivateSubnet1
 
-    Priv_RT2:
+    PrivateRT2:
         Type: AWS::EC2::RouteTable
         Properties: 
             VpcId: !Ref VPC
@@ -186,173 +186,172 @@ Resources:
     DefaultPrivateRoute2:
         Type: AWS::EC2::Route
         Properties:
-            RouteTableId: !Ref Priv_RT2
+            RouteTableId: !Ref PrivateRT2
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref NatGateway2
 
-    Priv_Sub2_RT_Association:
+    PrivateSub2RTAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
-            RouteTableId: !Ref Priv_RT2
+            RouteTableId: !Ref PrivateRT2
             SubnetId: !Ref PrivateSubnet2
 
-    LB_SG:
+    LoadbalancerSG:
         Type: AWS::EC2::SecurityGroup
         Properties:
             GroupDescription: Allow http to our load balancer
             VpcId: !Ref VPC
-        SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+            SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
+            SecurityGroupEgress:
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
 
-    WebServer_SG:
+    WebServerSG:
         Type: AWS::EC2::SecurityGroup
         Properties:
             GroupDescription: Allow http to our hosts and SSH from local only
             VpcId: !Ref VPC
-        SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
-        SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 0
-          ToPort: 65535
-          CidrIp: 0.0.0.0/0
+            SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 8080
+              ToPort: 8080
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp
+              FromPort: 22
+              ToPort: 22
+              CidrIp: 0.0.0.0/0
+            SecurityGroupEgress:
+            - IpProtocol: tcp
+              FromPort: 0
+              ToPort: 65535
+              CidrIp: 0.0.0.0/0
  
             #------------  create an IAM Role that allows ^Cnstances to use the S3 Service -------------
 
     UdacityS3ReadOnlyEC2: 
         Type: AWS::IAM::Role
         Properties: 
-        AssumeRolePolicyDocument: 
-            Version: "2012-10-17"
-            Statement: 
-            - Effect: Allow
-              Principal: 
-              Service: 
-                - ec2.amazonaws.com
-              Action: 
-                - sts:AssumeRole
-        Path: /
+            RoleName: !Sub shimaa-${EnvironmentName}-Role
+            AssumeRolePolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                - Effect: Allow
+                  Principal: 
+                    Service: 
+                        - ec2.amazonaws.com
+                  Action: 
+                    - sts:AssumeRole
+            Path: /
 
     RolePolicies: 
         Type: AWS::IAM::Policy
         Properties: 
-        PolicyName: AmazonS3ReadOnlyAccess
-        PolicyDocument: 
-            Version: "2012-10-17"
-            Statement: 
-            - Effect: Allow
-              Action: 
-                - s3:Get*
-                - s3:List*
-              Resource: 
-                arn:aws:s3:::/udacity-s3-udagram/*
-        Roles: 
-            - !Ref UdacityS3ReadOnlyEC2
+            PolicyName: AmazonS3ReadOnlyAccess
+            PolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                - Effect: Allow
+                  Action: 
+                    - s3:Get*
+                    - s3:List*
+                  Resource: 
+                    - arn:aws:s3:::/udacity-s3-udagram/*
+            Roles: 
+                - !Ref UdacityS3ReadOnlyEC2
 
     ProfileWithRolesForOurApp: 
         Type: AWS::IAM::InstanceProfile
         Properties: 
-        Path: /
-        Roles: 
-            - !Ref UdacityS3ReadOnlyEC2
+            Path: /
+            Roles: 
+                - !Ref UdacityS3ReadOnlyEC2
 
     WebAppLaunchConfig:
         Type: AWS::AutoScaling::LaunchConfiguration
         Properties:
-        UserData:
-            Fn::Base64: !Sub |
-                #!/bin/bash
-                apt-get update -y
-                apt-get install unzip awscli -y
-                apt-get install apache2 -y
-                systemctl start apache2.service
-                cd /var/www/html
-                aws s3 cp s3://udacity-s3-udagram/udacity.zip .
-                unzip -o udacity.zip
+            UserData:
+                Fn::Base64: !Sub |
+                    #!/bin/bash
+                    apt-get update -y
+                    apt-get install unzip awscli -y
+                    apt-get install apache2 -y
+                    systemctl start apache2.service
+                    cd /var/www/html
+                    aws s3 cp s3://udacity-s3-udagram/udacity.zip .
+                    unzip -o udacity.zip
 
-        ImageId: ami-003634241a8fcdec0 
-        KeyName: ec2-key
-        SecurityGroups:
-        - !Ref WebServer_SG
-        InstanceType: t3.small
-        BlockDeviceMappings:
-        - DeviceName: "/dev/sdk"
-          Ebs:
-            VolumeSize: '10'
+            ImageId: ami-003634241a8fcdec0 
+            IamInstanceProfile: !Ref ProfileWithRolesForOurApp
+            SecurityGroups:
+              - !Ref WebServerSG
+            InstanceType: t3.medium
+            BlockDeviceMappings:
+                - DeviceName: "/dev/sdk"
+                  Ebs:
+                    VolumeSize: '10'
 
-    WebApp_TG:
+    WebAppTG:
         Type: AWS::ElasticLoadBalancingV2::TargetGroup
         Properties:
-        HealthCheckIntervalSeconds: 10
-        HealthCheckPath: /
-        HealthCheckProtocol: HTTP
-        HealthCheckTimeoutSeconds: 8
-        HealthyThresholdCount: 2
-        Port: 8080
-        Protocol: HTTP
-        UnhealthyThresholdCount: 5
-        VpcId: !Ref VPC
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: /
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 8
+            HealthyThresholdCount: 2
+            Port: 8080
+            Protocol: HTTP
+            UnhealthyThresholdCount: 5
+            VpcId: !Ref VPC
 
-    WebApp_ASG:
+    WebAppASG:
         Type: AWS::AutoScaling::AutoScalingGroup
         Properties:
-        VPCZoneIdentifier:
-           - !Ref PrivateSubnet1
-           - !Ref PrivateSubnet2
-        LaunchConfigurationName:
-            !Ref WebAppLaunchConfig
-        MinSize: '3'
-        MaxSize: '5'
-        TargetGroupARNs:
-           - !Ref WebApp_TG
+            VPCZoneIdentifier:
+              - !Ref PrivateSubnet1
+              - !Ref PrivateSubnet2
+            LaunchConfigurationName:
+                !Ref WebAppLaunchConfig
+            MinSize: '3'
+            MaxSize: '5'
+            TargetGroupARNs:
+              - !Ref WebAppTG
 
 
-    WebApp_LB:
+    WebAppLB:
         Type: AWS::ElasticLoadBalancingV2::LoadBalancer
         Properties:
-        Subnets:
-           - !Ref PrivateSubnet1
-           - !Ref PrivateSubnet2
-        SecurityGroups:
-        - !Ref LB_SG
+            Subnets:
+              - !Ref PrivateSubnet1
+              - !Ref PrivateSubnet2
+            SecurityGroups:
+              - !Ref LoadbalancerSG
 
     Listener:
         Type: AWS::ElasticLoadBalancingV2::Listener
         Properties:
-        DefaultActions:
-        - Type: forward
-          TargetGroupArn:
-            !Ref WebApp_TG
-        LoadBalancerArn:
-            !Ref WebApp_LB
-        Port: '80'
-        Protocol: HTTP
+            DefaultActions:
+                - Type: forward
+                  TargetGroupArn: !Ref WebAppTG
+            LoadBalancerArn: !Ref WebAppLB
+            Port: '80'
+            Protocol: HTTP
 
     ALBListenerRule:
         Type: AWS::ElasticLoadBalancingV2::ListenerRule
         Properties:
             Actions:
-            - Type: forward
-            TargetGroupArn: !Ref WebApp_TG
+              - Type: forward
+                TargetGroupArn: !Ref WebAppTG
             Conditions:
-            - Field: path-pattern
-            Values: [/]
-            ListenerArn: !Ref 'Listener'
+              - Field: path-pattern
+                Values: [/]
+            ListenerArn: !Ref Listener
             Priority: 1
 
 Outputs: 
@@ -365,19 +364,19 @@ Outputs:
 
     PublicRouteTable:
         Description: Public Routing
-        Value: !Ref PublicRouteTable
+        Value: !Ref PublicRT
         Export:
           Name: !Sub ${EnvironmentName}-PUB-RT
 
     PrivateRouteTable1:
         Description: Private Routing AZ1
-        Value: !Ref PrivateRouteTable1
+        Value: !Ref PrivateRT1
         Export:
           Name: !Sub ${EnvironmentName}-PRI1-RT
 
     PrivateRouteTable2:
         Description: Private Routing AZ2
-        Value: !Ref PrivateRouteTable2
+        Value: !Ref PrivateRT2
         Export:
           Name: !Sub ${EnvironmentName}-PRI2-RT
 
