@@ -219,8 +219,8 @@ Resources:
             VpcId: !Ref VPC
             SecurityGroupIngress:
             - IpProtocol: tcp
-              FromPort: 8080
-              ToPort: 8080
+              FromPort: 80
+              ToPort: 80
               CidrIp: 0.0.0.0/0
             - IpProtocol: tcp
               FromPort: 22
@@ -232,7 +232,7 @@ Resources:
               ToPort: 65535
               CidrIp: 0.0.0.0/0
  
-            #------------  create an IAM Role that allows ^Cnstances to use the S3 Service -------------
+            #------------  create an IAM Role that allows instances to use the S3 Service -------------
 
     UdacityS3ReadOnlyEC2: 
         Type: AWS::IAM::Role
@@ -261,6 +261,7 @@ Resources:
                     - s3:Get*
                     - s3:List*
                   Resource: 
+                    - arn:aws:s3:::/udacity-s3-udagram
                     - arn:aws:s3:::/udacity-s3-udagram/*
             Roles: 
                 - !Ref UdacityS3ReadOnlyEC2
@@ -278,11 +279,12 @@ Resources:
             UserData:
                 Fn::Base64: !Sub |
                     #!/bin/bash
+                    export DEBIAN_FRONTEND=noninteractive 
                     apt-get update -y
                     apt-get install unzip awscli -y
                     apt-get install apache2 -y
                     systemctl start apache2.service
-                    cd /var/www/html
+                    cd /var/www/html/
                     aws s3 cp s3://udacity-s3-udagram/udacity.zip .
                     unzip -o udacity.zip
 
@@ -290,7 +292,7 @@ Resources:
             IamInstanceProfile: !Ref ProfileWithRolesForOurApp
             SecurityGroups:
               - !Ref WebServerSG
-            InstanceType: t3.medium
+            InstanceType: t3.small
             BlockDeviceMappings:
                 - DeviceName: "/dev/sdk"
                   Ebs:
@@ -304,7 +306,7 @@ Resources:
             HealthCheckProtocol: HTTP
             HealthCheckTimeoutSeconds: 8
             HealthyThresholdCount: 2
-            Port: 8080
+            Port: 80
             Protocol: HTTP
             UnhealthyThresholdCount: 5
             VpcId: !Ref VPC
@@ -320,15 +322,15 @@ Resources:
             MinSize: '3'
             MaxSize: '5'
             TargetGroupARNs:
-              - !Ref WebAppTG
+              - Ref: WebAppTG
 
 
     WebAppLB:
         Type: AWS::ElasticLoadBalancingV2::LoadBalancer
         Properties:
             Subnets:
-              - !Ref PrivateSubnet1
-              - !Ref PrivateSubnet2
+              - !Ref PublicSubnet1
+              - !Ref PublicSubnet2
             SecurityGroups:
               - !Ref LoadbalancerSG
 
@@ -339,7 +341,7 @@ Resources:
                 - Type: forward
                   TargetGroupArn: !Ref WebAppTG
             LoadBalancerArn: !Ref WebAppLB
-            Port: '80'
+            Port: 80
             Protocol: HTTP
 
     ALBListenerRule:
